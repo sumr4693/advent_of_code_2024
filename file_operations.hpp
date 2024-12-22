@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 #include <regex>
+#include <map>
 
 using namespace std;
 
@@ -71,6 +72,10 @@ void get_data_from_file(vector<T1> &v, regex e)
     string line;
     // smatch res;
 
+    // Point to beginning of the file
+    file.clear();
+    file.seekg(0);
+
     regex_token_iterator<string::iterator> rend;
     while (getline(file, line))
     {
@@ -84,10 +89,78 @@ void get_data_from_file(vector<T1> &v, regex e)
         //     line = res.suffix();
         // }
     }
+}
 
-    // for (auto ele : v)
+void get_data_from_file(vector<T1>& v, vector<int>& v_idxs, regex e)
+{
+    string line;
+    int total_len = 0;
+
+    // Point to beginning of the file
+    file.clear();
+    file.seekg(0);
+
+    regex_token_iterator<string::iterator> rend;
+    while (getline(file, line))
+    {
+        size_t pattern_idx = 0;
+        regex_token_iterator<string::iterator> a (line.begin(), line.end(), e);
+        while (a != rend)
+        {
+            string tmp_str = *a;
+            int total_idx = 0;
+            // cout << tmp_str << ", before finding str " << pattern_idx << endl;
+            pattern_idx = line.find(tmp_str, pattern_idx);
+            // cout << "Finding str: " << pattern_idx << endl;
+            v.push_back(tmp_str);
+            total_idx = (int) pattern_idx + total_len;
+            v_idxs.push_back(total_idx);
+            // cout << tmp_str.length() << " " << total_idx << endl;
+            pattern_idx += (size_t) tmp_str.length();
+            *a++;
+        }
+
+        total_len += line.length();
+    }
+
+    // cout << "Printing strings and indexes: " << endl;
+
+    // for (auto i = 0; i < v.size(); i++)
     // {
-    //     cout << ele << endl;
+    //     cout << v[i] << " " << v_idxs[i] << endl;
     // }
 }
+
+void get_indexes(vector<int>& v_idxs, regex match_expr)
+{
+    string line;
+    int total_len = 0;
+
+    // Point to beginning of the file
+    file.clear();
+    file.seekg(0);
+
+    regex_token_iterator<string::iterator> rend;
+    while (getline(file, line))
+    {
+        size_t pattern_idx = 0;
+        regex_token_iterator<string::iterator> a (line.begin(), line.end(), match_expr);
+        while (a != rend)
+        {
+            string tmp_str = *a;
+            pattern_idx = line.find(tmp_str, pattern_idx);
+            v_idxs.push_back((int) pattern_idx + total_len);
+            pattern_idx += tmp_str.length();
+            *a++;
+        }
+
+        total_len += line.length();
+    }
+
+    // for (auto i = 0; i < v_idxs.size(); i++)
+    // {
+    //     cout << v_idxs[i] << endl;
+    // }
+}
+
 };

@@ -1,0 +1,6 @@
+don't()mul(5,5)do()mul(2,20)...do()mul(2,10)????do()kkkdon't()
+xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))
+xmul(2,4]&mul(3,7)!^don't()_mul5,5)+mul(32,64)(mul(118)undo()?mul(8,5))
+do()_mul(2,2)do()..mul(2,3)don't()mul(3,3)don't()mul(3,4)
+mul(1,5)..)))mul(8,7)_do()...mul(6,6)..don't()??mul(8,8)do()mul(9,5)do()mul(2,5)don't()
+ymul(6,5)do()zmul(3,10)
