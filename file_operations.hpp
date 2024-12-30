@@ -43,9 +43,8 @@ void get_data_from_file(vector<T1> &v1, vector<T1> &v2)
     cout << "Number of lines: " << no_of_lines << endl;
 }
 
-void get_data_from_file(vector<vector<T1>> &v)
+void get_num_data_from_file(vector<vector<T1>> &v)
 {
-    vector<T1> row_vec;
     int no_of_lines = 0;
 
     string line;
@@ -65,6 +64,27 @@ void get_data_from_file(vector<vector<T1>> &v)
     }
 
     cout << "Number of lines: " << no_of_lines << endl;
+}
+
+void get_char_data_from_file(vector<vector<T1>> &v)
+{
+    string line;
+
+    // Point to beginning of the file
+    file.clear();
+    file.seekg(0);
+
+    while(getline(file, line))
+    {
+        vector<char> ch_vec;
+
+        for (char& c : line)
+        {
+            ch_vec.push_back(c);
+        }
+
+        v.push_back(ch_vec);
+    }
 }
 
 void get_data_from_file(vector<T1> &v, regex e)
@@ -161,6 +181,31 @@ void get_indexes(vector<int>& v_idxs, regex match_expr)
     // {
     //     cout << v_idxs[i] << endl;
     // }
+}
+
+void print_vector(vector<vector<T1>> const v)
+{
+    cout << "Printing elements in 2D vector: " << endl;
+    for (int i = 0; i < v.size(); i++)
+    {
+        for (int j = 0; j < v[i].size(); j++)
+        {
+            cout << v[i][j];
+        }
+        cout << endl;
+    }
+}
+
+void print_vector(vector<T1> v)
+{
+    cout << "Printing elements in 1D vector: " << endl;
+
+    for (int i = 0; i < v.size(); i++)
+    {
+        cout << v[i];
+    }
+
+    cout << endl;
 }
 
 };
