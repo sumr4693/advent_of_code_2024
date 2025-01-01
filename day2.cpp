@@ -199,7 +199,8 @@ int main()
 
     fileOperations<int> fOp(file_name);
 
-    fOp.get_num_data_from_file(vec_2d);
+    char ch = ' ';
+    fOp.get_num_data_from_file(vec_2d, ch);
 
     int pure_safe_reports = find_safe_reports(vec_2d);
     int revised_safe_reports = find_revised_safe_reports(vec_2d);

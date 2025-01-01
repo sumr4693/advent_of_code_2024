@@ -43,10 +43,13 @@ void get_data_from_file(vector<T1> &v1, vector<T1> &v2)
     cout << "Number of lines: " << no_of_lines << endl;
 }
 
-void get_num_data_from_file(vector<vector<T1>> &v)
+void get_num_data_from_file(vector<vector<T1>> &v, char ch)
 {
-    int no_of_lines = 0;
+    // Point to beginning of the file
+    file.clear();
+    file.seekg(0);
 
+    int no_of_lines = 0;
     string line;
 
     while (getline(file, line))
@@ -55,12 +58,17 @@ void get_num_data_from_file(vector<vector<T1>> &v)
         string str_num;
         vector<T1> temp_row_vec;
 
-        while (getline(ss, str_num, ' '))
+        size_t char_found = line.find(ch);
+
+        if (char_found != string::npos)
         {
-            temp_row_vec.emplace_back(stoi(str_num));
+            while (getline(ss, str_num, ch))
+            {
+                temp_row_vec.emplace_back(stoi(str_num));
+            }
+            v.push_back(temp_row_vec);
+            no_of_lines++;
         }
-        v.push_back(temp_row_vec);
-        no_of_lines++;
     }
 
     cout << "Number of lines: " << no_of_lines << endl;
@@ -190,7 +198,7 @@ void print_vector(vector<vector<T1>> const v)
     {
         for (int j = 0; j < v[i].size(); j++)
         {
-            cout << v[i][j];
+            cout << v[i][j] << " ";
         }
         cout << endl;
     }
@@ -202,7 +210,7 @@ void print_vector(vector<T1> v)
 
     for (int i = 0; i < v.size(); i++)
     {
-        cout << v[i];
+        cout << v[i] << " ";
     }
 
     cout << endl;
