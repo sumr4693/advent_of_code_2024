@@ -48,7 +48,7 @@ void create_predecessors_successors_from_rules(vector<int> &successors, vector<v
                                                vector<int> &predecessors, vector<vector<int>> &successors_2d,
                                                vector<vector<int>> const page_order_rules)
 {
-    //Store the 1st column numbers without repetition in a vector
+    // Store the 1st column numbers without repetition in a vector
     for (int i = 0; i < page_order_rules.size(); i++)
     {
         int predecessor = page_order_rules[i][0];
@@ -58,7 +58,7 @@ void create_predecessors_successors_from_rules(vector<int> &successors, vector<v
         }
     }
 
-    //Store the 2nd column numbers without repetition in a vector
+    // Store the 2nd column numbers without repetition in a vector
     for (int i = 0; i < page_order_rules.size(); i++)
     {
         int successor = page_order_rules[i][1];
@@ -118,19 +118,26 @@ int find_relevant_updates(vector<int> &successors, vector<vector<int>> &predeces
 {
     int result = 0;
 
+    // For each row in updates
     for (int i = 0; i < updates.size(); i++)
     {
         int valid_update_count = 0;
+        // For each element in the row
         for (int j = 0; j < updates[i].size(); j++)
         {
+            /* 
+             * If the element in the update row belongs to the successors list, check for the 
+             * corresponding predecessors (2d) in the update row. Not necessarily all the predecessors should be in the row.
+             * For the ones that are present, if they are positioned before the index of the successor, then it is a valid row.
+             * Otherwise not. Save the invalid (or inordered) row indexes.
+            */
             if (count(successors.begin(), successors.end(), updates[i][j]) > 0)
             {
                 int suc_pre_idx = find_index(successors, updates[i][j]);
-                // cout << "s-p: " << suc_pre_idx << endl;
                 int k = 0;
                 for (k = 0; k < predecessors_2d[suc_pre_idx].size(); k++)
                 {
-                    if (count(updates[i].begin() + j, updates[i].end(), predecessors_2d[suc_pre_idx][k]) > 0)
+                    if (count(updates[i].begin() + j + 1, updates[i].end(), predecessors_2d[suc_pre_idx][k]) > 0)
                     {
                         break;
                     }
@@ -152,6 +159,7 @@ int find_relevant_updates(vector<int> &successors, vector<vector<int>> &predeces
             }
         }
 
+        // If it is a valid row, then add the value of middle index of that row to the result.
         if (valid_update_count == updates[i].size())
         {
             int middle_idx = (valid_update_count-1)/2;
@@ -174,6 +182,11 @@ int correct_inordered_pages(vector<int> const successors, vector<vector<int>> co
         {
             int current_element = temp_page_updates[i][j];
 
+            /* 
+             * If the element is a successor, check for the corresponding predecessors (2d) in the inordered update row.
+             * Not necessarily all the predecessors should be in the row. For the ones that are present, if they are positioned
+             * after the index of the successor, move them to before successor.
+            */
             if (count(successors.begin(), successors.end(), current_element) > 0)
             {
                 int suc_idx = find_index(successors, current_element);
@@ -192,6 +205,12 @@ int correct_inordered_pages(vector<int> const successors, vector<vector<int>> co
                     }
                 }
             }
+
+            /* 
+             * If the element is a predecessor, check for the corresponding successors (2d) in the inordered update row.
+             * Not necessarily all the successors should be in the row. For the ones that are present, if they are positioned
+             * before the index of the successor, move them to after predecessor.
+            */
             if (count(predecessors.begin(), predecessors.end(), current_element) > 0)
             {
                 int pre_idx = find_index(predecessors, current_element);
@@ -211,12 +230,16 @@ int correct_inordered_pages(vector<int> const successors, vector<vector<int>> co
                 }
             }
 
+            /* Repeat the above steps for the same index of the update row (since there will be
+             * new element in place due to moving), until there is no new element updated.
+             */
             if (current_element == temp_page_updates[i][j])
             {
                 j++;
             }
         }
 
+        /* After ordering each row, add the value of middle index to the result */
         int mid_idx = (temp_page_updates[i].size() - 1)/2;
         result += temp_page_updates[i][mid_idx];
     }
@@ -254,6 +277,7 @@ int main()
     vector<int> inordered_idxs;
     result = find_relevant_updates(successors, predecessors_2d, inordered_idxs, page_updates);
 
+    // Extract only the inordered update rows
     vector<vector<int>> inordered_page_updates;
     for (int i = 0; i < inordered_idxs.size(); i++)
     {
