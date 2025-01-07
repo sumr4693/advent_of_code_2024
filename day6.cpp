@@ -3,7 +3,9 @@
 #include <string>
 #include <fstream>
 #include <algorithm>
+#include <unordered_map>
 #include <map>
+#include <tuple>
 
 #include "file_operations.hpp"
 
@@ -11,9 +13,9 @@ using namespace std;
 
 typedef enum {
     e_UP,
+    e_RIGHT,
     e_DOWN,
     e_LEFT,
-    e_RIGHT,
     e_NUM_DIR = 4
 } navigation_direction_t;
 
@@ -353,70 +355,59 @@ int main()
     obs_vec.push_back(manual_obs);
 
     vector<vector<char>> obs_map (map_2d.size(), vector<char>(map_2d[0].size(), '.'));
-    // for (int i = 1; i < travel_path.size(); i++)
-    // {
-    //     vector<vector<char>> copy_map_2d = map_2d;
-    //     bool is_valid_obs_position = true;
-    //     bool is_guard_looping = false;
 
-    //     add_obstacle(copy_map_2d, travel_path[i], manual_obs);
+    // Create and fill in the jump table values for all directions to facilitate teleporting
+    map<tuple<int,int,int>, tuple<int,int,int>> jump_table;
 
-    //     vector<array<int,3>> loop_path;
+    for (int i = 0; i < map_2d.size(); i++)
+    {
+        // "Don't care" position values
+        tuple<int,int,int> jump_from_left_to_up = make_tuple(-1, -1, e_UP);
+        for (int j = 0; j < map_2d[0].size(); j++)
+        {
+            if (map_2d[i][j] == default_obstacle)
+            {
+                jump_from_left_to_up = make_tuple(i, j+1, e_UP);
+            }
+            jump_table.emplace(make_tuple(i, j, e_LEFT), jump_from_left_to_up);
+        }
 
-    //     // Include starting position in the loop path and increment the visits to 1 for the starting pos index
-    //     array<int,3> current_pos;
+        // "Don't care" position values
+        tuple<int,int,int> jump_from_right_to_down = make_tuple(-1, -1, e_DOWN);
+        for (int j = map_2d[0].size() - 1; j > 0; j--)
+        {
+            if (map_2d[i][j] == default_obstacle)
+            {
+                jump_from_right_to_down = make_tuple(i, j-1, e_DOWN);
+            }
+            jump_table.emplace(make_tuple(i, j, e_RIGHT), jump_from_right_to_down);
+        }
+    }
 
-    //     current_pos[0] = travel_path[0].first;
-    //     current_pos[1] = travel_path[0].second;
-    //     current_pos[2] = (int) e_UP;
-    //     loop_path.push_back(current_pos);
+    for (int j = 0; j < map_2d[0].size(); j++)
+    {
+        // "Don't care" position values
+        tuple<int,int,int> jump_from_up_to_right = make_tuple(-1, -1, e_RIGHT);
+        for (int i = 0; i < map_2d.size(); i++)
+        {
+            if (map_2d[i][j] == default_obstacle)
+            {
+                jump_from_up_to_right = make_tuple(i+1, j, e_RIGHT);
+            }
+            jump_table.emplace(make_tuple(i, j, e_UP), jump_from_up_to_right);
+        }
 
-    //     current_index = travel_path[0];
-    //     current_direction = e_UP;
-
-    //     while (is_guard_looping == false)
-    //     {
-    //         obs = '.';
-    //         while(check_for_obstacle(copy_map_2d, current_index, current_direction, obs_vec, obs))
-    //         {
-    //             current_direction = turn_right(current_direction);
-
-    //             current_pos[0] = current_index.first;
-    //             current_pos[1] = current_index.second;
-    //             current_pos[2] = (int) current_direction;
-    //             loop_path.push_back(current_pos);
-    //         }
-
-    //         pair<int,int> next_idx;
-    //         if(predict_next_step(copy_map_2d, current_index, next_idx, current_direction))
-    //         {
-    //             current_index = next_idx;
-
-    //             current_pos[0] = current_index.first;
-    //             current_pos[1] = current_index.second;
-    //             current_pos[2] = (int) current_direction;
-
-    //             if (count(loop_path.begin(), loop_path.end(), current_pos) > 0)
-    //             {
-    //                 is_guard_looping = true;
-    //                 break;
-    //             }
-
-    //             loop_path.push_back(current_pos);
-    //         }
-    //         else
-    //         {
-    //             is_valid_obs_position = false;
-    //             break;
-    //         }
-    //     }
-
-    //     if ((is_valid_obs_position) && (obs_map[travel_path[i].first][travel_path[i].second] != manual_obs))
-    //     {
-    //         no_of_obstacle_positions++;
-    //         add_obstacle(obs_map, travel_path[i], manual_obs);
-    //     }
-    // }
+        // "Don't care" position values
+        tuple<int,int,int> jump_from_down_to_left = make_tuple(-1, -1, e_LEFT);
+        for (int i = map_2d.size() - 1; i > 0; i--)
+        {
+            if (map_2d[i][j] == default_obstacle)
+            {
+                jump_from_down_to_left = make_tuple(i-1, j, e_LEFT);
+            }
+            jump_table.emplace(make_tuple(i, j, e_DOWN), jump_from_down_to_left);
+        }
+    }
 
     for (int i = 1; i < travel_path.size(); i++)
     {
@@ -428,7 +419,6 @@ int main()
 
         vector<array<int,3>> loop_path;
 
-        // Include starting position in the loop path and increment the visits to 1 for the starting pos index
         array<int,3> current_pos;
 
         current_pos[0] = travel_path[0].first;
@@ -443,21 +433,36 @@ int main()
 
         while (is_inside_edges == true && is_guard_looping == false)
         {
-            next_index.first = current_index.first + direction_arr[current_direction][0];
-            next_index.second = current_index.second + direction_arr[current_direction][1];
-
-            if(copy_map_2d[next_index.first][next_index.second] == default_obstacle ||
-               copy_map_2d[next_index.first][next_index.second] == manual_obs)
+            if (current_index.first != travel_path[i].first && current_index.second != travel_path[i].second)
             {
-                current_direction = (navigation_direction_t) ((current_direction + 1) % e_NUM_DIR);
+                tuple<int,int,int> current_pos_tup, next_pos_tup;
+                current_pos_tup = make_tuple(current_index.first, current_index.second, current_direction);
+                next_pos_tup = jump_table[current_pos_tup];
+
+                next_index.first = get<0>(next_pos_tup);
+                next_index.second = get<1>(next_pos_tup);
+                current_direction = (navigation_direction_t) get<2>(next_pos_tup);
+
+                current_index = next_index;
             }
             else
             {
-                current_index = next_index;
+                next_index.first = current_index.first + direction_arr[current_direction][0];
+                next_index.second = current_index.second + direction_arr[current_direction][1];
+
+                if(copy_map_2d[next_index.first][next_index.second] == default_obstacle ||
+                   copy_map_2d[next_index.first][next_index.second] == manual_obs)
+                {
+                    current_direction = (navigation_direction_t) ((current_direction + 1) % e_NUM_DIR);
+                }
+                else
+                {
+                    current_index = next_index;
+                }
             }
 
-            if ((current_index.first == 0 || current_index.first == map_2d.size() - 1) ||
-                (current_index.second == 0 || current_index.second == map_2d[0].size() - 1))
+            if ((current_index.first <= 0 || current_index.first >= map_2d.size() - 1) ||
+                (current_index.second <= 0 || current_index.second >= map_2d[0].size() - 1))
             {
                 is_inside_edges = false;
                 is_valid_obs_position = false;
