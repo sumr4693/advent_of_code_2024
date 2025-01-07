@@ -3,9 +3,10 @@
 #include <string>
 #include <fstream>
 #include <algorithm>
-#include <unordered_map>
 #include <map>
 #include <tuple>
+
+#include <chrono>
 
 #include "file_operations.hpp"
 
@@ -80,124 +81,6 @@ pair<int,int> find_starting_position(vector<vector<char>> const map_2d, char app
     return pos;
 }
 
-bool check_for_obstacle(vector<vector<char>> const map_2d, pair<int,int> const current_idx, navigation_direction_t const current_direction, vector<char> const obs_vec, char &obs)
-{
-    pair<int, int> next_idx;
-    bool is_obs_detected = false;
-
-    switch(current_direction)
-    {
-        case e_UP:
-            next_idx = make_pair (current_idx.first - 1, current_idx.second);
-            break;
-
-        case e_DOWN:
-            next_idx = make_pair (current_idx.first + 1, current_idx.second);
-            break;
-
-        case e_LEFT:
-            next_idx = make_pair (current_idx.first, current_idx.second - 1);
-            break;
-
-        case e_RIGHT:
-            next_idx = make_pair (current_idx.first, current_idx.second + 1);
-            break;
-
-        default:
-            cout << "Choose one of the four directions: e_UP, e_DOWN, e_LEFT, e_RIGHT" << endl;
-            break;
-    }
-
-    for (int i = 0; i < obs_vec.size(); i++)
-    {
-        if (map_2d[next_idx.first][next_idx.second] == obs_vec[i])
-        {
-            is_obs_detected = true;
-            obs = obs_vec[i];
-            break;
-        }
-    }
-
-    return is_obs_detected;
-}
-
-navigation_direction_t turn_right(navigation_direction_t const current_direction)
-{
-    navigation_direction_t next_direction;
-
-    switch (current_direction)
-    {
-    case e_UP:
-        next_direction = e_RIGHT;
-        break;
-
-    case e_RIGHT:
-        next_direction = e_DOWN;
-        break;
-
-    case e_DOWN:
-        next_direction = e_LEFT;
-        break;
-
-    case e_LEFT:
-        next_direction = e_UP;
-        break;
-
-    default:
-        break;
-    }
-
-    return next_direction;
-}
-
-bool navigate_map(vector<vector<char>> &map_2d, vector<pair<int,int>> &travel_path, vector<navigation_direction_t> &travel_directions, navigation_direction_t current_direction)
-{
-    pair<int, int> current_idx = travel_path.back();
-    pair<int, int> next_idx;
-
-    bool is_inside_edges = true;
-
-    map_2d[current_idx.first][current_idx.second] = '.';
-
-    switch(current_direction)
-    {
-        case e_UP:
-            next_idx = make_pair (current_idx.first - 1, current_idx.second);
-            map_2d[next_idx.first][next_idx.second] = '^';
-            break;
-
-        case e_DOWN:
-            next_idx = make_pair (current_idx.first + 1, current_idx.second);
-            map_2d[next_idx.first][next_idx.second] = 'v';
-            break;
-
-        case e_LEFT:
-            next_idx = make_pair (current_idx.first, current_idx.second - 1);
-            map_2d[next_idx.first][next_idx.second] = '<';
-            break;
-
-        case e_RIGHT:
-            next_idx = make_pair (current_idx.first, current_idx.second + 1);
-            map_2d[next_idx.first][next_idx.second] = '>';
-            break;
-
-        default:
-            cout << "Choose one of the four directions: e_UP, e_DOWN, e_LEFT, e_RIGHT" << endl;
-            break;
-    }
-
-    if ((next_idx.first == 0 || next_idx.first == map_2d.size() - 1) || 
-        (next_idx.second == 0 || next_idx.second == map_2d[0].size() - 1))
-    {
-        is_inside_edges = false;
-    }
-
-    travel_path.push_back(next_idx);
-    travel_directions.push_back(current_direction);
-
-    return is_inside_edges;
-}
-
 int count_distinct_positions(vector<vector<char>> const map_2d, char presence)
 {
     int position_counts = 0;
@@ -229,42 +112,6 @@ void add_obstacle(vector<vector<char>> &map_2d, pair<int,int> idx, char manual_o
     map_2d[idx.first][idx.second] = manual_obs;
 }
 
-bool predict_next_step(vector<vector<char>> const map_2d, pair<int,int> current_idx, pair<int,int> &next_idx, navigation_direction_t current_direction)
-{
-    bool is_valid_next_step = true;
-
-    switch(current_direction)
-    {
-        case e_UP:
-            next_idx = make_pair (current_idx.first - 1, current_idx.second);
-            break;
-
-        case e_DOWN:
-            next_idx = make_pair (current_idx.first + 1, current_idx.second);
-            break;
-
-        case e_LEFT:
-            next_idx = make_pair (current_idx.first, current_idx.second - 1);
-            break;
-
-        case e_RIGHT:
-            next_idx = make_pair (current_idx.first, current_idx.second + 1);
-            break;
-
-        default:
-            cout << "Choose one of the four directions: e_UP, e_DOWN, e_LEFT, e_RIGHT" << endl;
-            break;
-    }
-
-    if ((next_idx.first == 0 || next_idx.first == map_2d.size() - 1) || 
-        (next_idx.second == 0 || next_idx.second == map_2d[0].size() - 1))
-    {
-        is_valid_next_step = false;
-    }
-
-    return is_valid_next_step;
-}
-
 void display_map(vector<vector<char>> map_2d)
 {
     cout << "Printing map: " << endl;
@@ -280,6 +127,8 @@ void display_map(vector<vector<char>> map_2d)
 
 int main()
 {
+    auto time_start = chrono::high_resolution_clock::now();
+
     string file_path;
     // file_path = "./input_sample_d6.txt";
     file_path = "./d6.txt";
@@ -311,9 +160,6 @@ int main()
 
     travel_path.push_back(current_index);
 
-    vector<navigation_direction_t> travel_directions;
-    travel_directions.push_back(current_direction);
-
     bool is_inside_edges = true;
 
     pair<int,int> next_index;
@@ -334,9 +180,9 @@ int main()
 
         if ((current_index.first == 0 || current_index.first == map_2d.size() - 1) ||
             (current_index.second == 0 || current_index.second == map_2d[0].size() - 1))
-            {
-                is_inside_edges = false;
-            }
+        {
+            is_inside_edges = false;
+        }
 
         travel_path.push_back(current_index);
     }
@@ -433,6 +279,7 @@ int main()
 
         while (is_inside_edges == true && is_guard_looping == false)
         {
+            // If current position is neither in the row nor in the column of that of the manual obstacle
             if (current_index.first != travel_path[i].first && current_index.second != travel_path[i].second)
             {
                 tuple<int,int,int> current_pos_tup, next_pos_tup;
@@ -491,6 +338,12 @@ int main()
     }
 
     cout << "Part 2: " << no_of_obstacle_positions << endl;
+
+    auto time_end = chrono::high_resolution_clock::now();
+
+    auto duration = chrono::duration_cast<chrono::milliseconds>(time_end - time_start).count();
+
+    std::cout << "Execution time: " << duration << " ms" << std::endl;
 
     return 0;
 }
