@@ -5,6 +5,7 @@
 #include <sstream>
 #include <regex>
 #include <map>
+#include <stdint.h>
 
 using namespace std;
 
@@ -64,7 +65,7 @@ void get_num_data_from_file(vector<vector<T1>> &v, char ch)
         {
             while (getline(ss, str_num, ch))
             {
-                temp_row_vec.emplace_back(stoi(str_num));
+                temp_row_vec.emplace_back((T1) stoll(str_num));
             }
             v.push_back(temp_row_vec);
             no_of_lines++;
