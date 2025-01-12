@@ -120,6 +120,20 @@ void get_data_from_file(vector<T1> &v, regex e)
     }
 }
 
+void get_data_from_file(vector<string> &v)
+{
+    string line;
+
+    // Point to beginning of the file
+    file.clear();
+    file.seekg(0);
+
+    while (getline(file, line))
+    {
+        v.push_back(line);
+    }
+}
+
 void get_data_from_file(vector<T1>& v, vector<int>& v_idxs, regex e)
 {
     string line;
@@ -215,6 +229,24 @@ void print_vector(vector<T1> v)
     }
 
     cout << endl;
+}
+
+void write_to_file(string s, string filepath)
+{
+    ofstream out (filepath);
+    out << s;
+    out.close();
+}
+
+void write_to_file(vector<string> s, string filepath)
+{
+    ofstream out (filepath);
+
+    for (auto ele : s)
+    {
+        out << ele;
+    }
+    out.close();
 }
 
 };
