@@ -105,7 +105,10 @@ void expand_data(vector<int> const file_blocks, vector<int> const free_spaces, v
             {
                 free_space_vector.push_back(".");
             }
-            formatted_data.push_back(free_space_vector);
+            if (free_spaces[i] > 0)
+            {
+                formatted_data.push_back(free_space_vector);
+            }
         }
     }
 }
@@ -154,21 +157,21 @@ void apply_compacting_process(vector<vector<string>>& compacted_data)
 
         size_t file_size = compacted_data[rear_idx].size();
         size_t front_idx = 0;
-        while (compacted_data[front_idx][0] != free_space_str)
+        while ((compacted_data[front_idx][0] != free_space_str) && (front_idx < rear_idx))
         {
             front_idx++;
+        }
+
+        if (front_idx >= rear_idx)
+        {
+            is_compaction_over = true;
+            break;
         }
 
         while (front_idx < rear_idx && rear_idx >= 0)
         {
             size_t free_index = front_idx;
             size_t no_of_free_blocks = compacted_data[free_index].size();
-
-            if (rear_idx < free_index)
-            {
-                is_compaction_over = true;
-                break;
-            }
 
             if (file_size <= no_of_free_blocks)
             {
@@ -185,8 +188,10 @@ void apply_compacting_process(vector<vector<string>>& compacted_data)
                     {
                         free_space_vector.push_back(free_space_str);
                     }
+
                     compacted_data[free_index].erase(compacted_data[free_index].begin()+file_size, compacted_data[free_index].end());
                     compacted_data.insert(compacted_data.begin()+free_index+1, free_space_vector);
+
                     // To compensate for the inserted vector
                     rear_idx++;
                 }
@@ -195,6 +200,10 @@ void apply_compacting_process(vector<vector<string>>& compacted_data)
             else
             {
                 front_idx++;
+                while (compacted_data[front_idx][0] != free_space_str)
+                {
+                    front_idx++;
+                }
             }
         }
 
@@ -255,8 +264,8 @@ int main()
     auto time_start = chrono::high_resolution_clock::now();
 
     string file_path;
-    file_path = "./input_sample_d9.txt";
-    // file_path = "./d9.txt";
+    // file_path = "./input_sample_d9.txt";
+    file_path = "./d9.txt";
 
     fileOperations<string> fOp(file_path);
     vector<string> disk_map;
@@ -267,8 +276,6 @@ int main()
     vector<int> file_blocks;
     vector<int> free_spaces;
     extract_data_from_disk_map(disk_map, file_blocks, free_spaces);
-    // cout << "File blocks length: " << file_blocks.size() << endl;
-    // cout << "Free spaces length: " << free_spaces.size() << endl;
 
     vector<string> formatted_data;
     expand_data(file_blocks, free_spaces, formatted_data);
