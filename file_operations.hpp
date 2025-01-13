@@ -75,6 +75,30 @@ void get_num_data_from_file(vector<vector<T1>> &v, char ch)
     cout << "Number of lines: " << no_of_lines << endl;
 }
 
+void get_num_data_from_file(vector<vector<T1>> &v)
+{
+    // Point to beginning of the file
+    file.clear();
+    file.seekg(0);
+
+    int no_of_lines = 0;
+    string line;
+
+    while (getline(file, line))
+    {
+        vector<T1> temp_row_vec;
+
+        for (char ch : line)
+        {
+            temp_row_vec.emplace_back((T1) ch - '0');
+        }
+        v.push_back(temp_row_vec);
+        no_of_lines++;
+    }
+
+    cout << "Number of lines: " << no_of_lines << endl;
+}
+
 void get_char_data_from_file(vector<vector<T1>> &v)
 {
     string line;
