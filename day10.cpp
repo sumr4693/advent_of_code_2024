@@ -139,6 +139,53 @@ bool is_valid_next_step(vector<vector<int>> const v_map, size_t map_rows, size_t
     return is_valid;
 }
 
+int find_trailhead_scores(pair<int,int> trailhead, vector<pair<int,int>> endpoints, map<pair<int,int>, vector<tuple<int,int,int>>> map_table)
+{
+    int score = 0;
+    size_t total_endpoints = endpoints.size();
+
+    for (int i = 0; i < total_endpoints; i++)
+    {
+        pair<int,int> current_index = trailhead;
+        pair<int,int> end_index = endpoints[i];
+        tuple<int,int,int> next_index_tuple = map_table[current_index][0];
+        map<pair<int,int>, int> distance_map;
+        vector<pair<int,int>> traverse_path;
+
+        // If start index has no path to end point, skip this end point
+        if (get<0>(next_index_tuple) == -1)
+        {
+            continue;
+        }
+
+        while ((current_index.first != end_index.first) && (current_index.second != end_index.second))
+        {
+            pair<int,int> next_index;
+            // Select the minimum distance index to the end index among the available valid indexes from current_index
+            for (int j = 0; j < map_table[current_index].size(); j++)
+            {
+                next_index_tuple = map_table[current_index][j];
+                next_index = make_pair(get<0>(next_index_tuple), get<1>(next_index_tuple));
+                distance_map[next_index] = calculate_steps(next_index, end_index);
+            }
+
+            // If current index has no path to end point
+            if (get<0>map_table[current_index][0] == -1)
+            {
+                break;
+            }
+        }
+        
+        if ((current_index.first == end_index.first) && (current_index.second == end_index.second))
+        {
+            score++;
+        }
+    }
+
+    return score;
+    
+}
+
 int main()
 {
     auto time_start = chrono::high_resolution_clock::now();
