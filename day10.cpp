@@ -149,29 +149,40 @@ int find_trailhead_scores(pair<int,int> trailhead, vector<pair<int,int>> endpoin
         pair<int,int> current_index = trailhead;
         pair<int,int> end_index = endpoints[i];
         tuple<int,int,int> next_index_tuple = map_table[current_index][0];
-        map<pair<int,int>, int> distance_map;
-        vector<pair<int,int>> traverse_path;
-
-        // If start index has no path to end point, skip this end point
-        if (get<0>(next_index_tuple) == -1)
-        {
-            continue;
-        }
+        // map<pair<int,int>, int> distance_map;
+        // vector<pair<int,int>> traverse_path;
 
         while ((current_index.first != end_index.first) && (current_index.second != end_index.second))
         {
-            pair<int,int> next_index;
-            // Select the minimum distance index to the end index among the available valid indexes from current_index
-            for (int j = 0; j < map_table[current_index].size(); j++)
+            if (map_table[current_index].size() > 1)
             {
-                next_index_tuple = map_table[current_index][j];
-                next_index = make_pair(get<0>(next_index_tuple), get<1>(next_index_tuple));
-                distance_map[next_index] = calculate_steps(next_index, end_index);
+                pair<int,int> next_index, potential_current_index, prev_next_index;
+                int distance, prev_distance;
+                // Pick the minimum distance next index
+                for (int j = 0; j < map_table[current_index].size(); j++)
+                {
+                    next_index_tuple = map_table[current_index][j];
+                    next_index = make_pair(get<0>(next_index_tuple), get<1>(next_index_tuple));
+                    distance = calculate_steps(next_index, end_index);
+
+                    if (j > 0)
+                    {
+                        potential_current_index = (distance < prev_distance) ? next_index : prev_next_index;
+                    }
+                    prev_distance = distance;
+                    prev_next_index = next_index;
+                }
+                current_index = potential_current_index;
+            }
+            else
+            {
+                current_index = make_pair(get<0>(map_table[current_index][0]), get<1>(map_table[current_index][0]));
             }
 
-            // If current index has no path to end point
-            if (get<0>map_table[current_index][0] == -1)
+            if (map_table.count(current_index) == 0)
             {
+                cout << "endpoint: (" << endpoints[i].first << "," << endpoints[i].second << ")" << endl;
+                cout << "current index: (" << current_index.first << "," << current_index.second << ")" << endl;
                 break;
             }
         }
@@ -198,7 +209,7 @@ int main()
 
     vector<vector<int>> topographical_map;
     fOp.get_num_data_from_file(topographical_map);
-    print_vector<int>(topographical_map);
+    // print_vector<int>(topographical_map);
 
     size_t num_rows = topographical_map.size();
     size_t num_cols = topographical_map[0].size();
@@ -241,41 +252,73 @@ int main()
                 }
             }
 
-            if (no_of_valid_next_steps == 0)
-            {
-                forward_map_table[make_pair(i,j)].emplace_back(make_tuple(-1,-1,-1));
-            }
+            // if (no_of_valid_next_steps == 0)
+            // {
+            //     forward_map_table[make_pair(i,j)].emplace_back(make_tuple(-1,-1,-1));
+            // }
         }
     }
 
-    cout << "Forward map table: " << endl;
-    print_map(forward_map_table);
+    // cout << "Forward map table before cleaning: " << endl;
+    // print_map(forward_map_table);
 
-    map<pair<int,int>, vector<tuple<int,int,int>>> reverse_map_table;
-    for (int i = 0; i < num_rows; i++)
+    for (auto itr = forward_map_table.begin(); itr != forward_map_table.end(); ++itr)
     {
-        for (int j = 0; j < num_cols; j++)
+        for (auto path : itr->second)
         {
-            int no_of_valid_next_steps = 0;
-            for (int k = 0; k < e_NUM_DIR; k++)
+            pair<int,int> next = make_pair(get<0>(path), get<1>(path));
+            if ((forward_map_table.count(next) == 0) && (topographical_map[next.first][next.second] != 9))
             {
-                pair<int,int> next;
-                if (is_valid_next_step(topographical_map, num_rows, num_cols, make_pair(i,j), next, (directions_t) k, e_REVERSE))
-                {
-                    reverse_map_table[make_pair(i,j)].emplace_back(make_tuple(next.first, next.second, k));
-                    no_of_valid_next_steps++;
-                }
+                forward_map_table[itr->first].erase(remove(forward_map_table[itr->first].begin(), \
+                    forward_map_table[itr->first].end(), path), forward_map_table[itr->first].end());
             }
 
-            if (no_of_valid_next_steps == 0)
+            if (forward_map_table[itr->first].size() == 0)
             {
-                reverse_map_table[make_pair(i,j)].emplace_back(make_tuple(-1,-1,-1));
+                forward_map_table.erase(itr->first);
+                itr = forward_map_table.begin();
+                itr--;
+                break;
             }
         }
     }
 
-    cout << "Reverse map table: " << endl;
-    print_map(reverse_map_table);
+    int total_scores = 0;
+    for (int i = 0; i < trailheads.size(); i++)
+    {
+        total_scores += find_trailhead_scores(trailheads[i], endpoints, forward_map_table);
+    }
+
+    cout << "Total scores: " << total_scores << endl;
+
+    // cout << "Forward map table after cleaning: " << endl;
+    // print_map(forward_map_table);
+
+    // map<pair<int,int>, vector<tuple<int,int,int>>> reverse_map_table;
+    // for (int i = 0; i < num_rows; i++)
+    // {
+    //     for (int j = 0; j < num_cols; j++)
+    //     {
+    //         int no_of_valid_next_steps = 0;
+    //         for (int k = 0; k < e_NUM_DIR; k++)
+    //         {
+    //             pair<int,int> next;
+    //             if (is_valid_next_step(topographical_map, num_rows, num_cols, make_pair(i,j), next, (directions_t) k, e_REVERSE))
+    //             {
+    //                 reverse_map_table[make_pair(i,j)].emplace_back(make_tuple(next.first, next.second, k));
+    //                 no_of_valid_next_steps++;
+    //             }
+    //         }
+
+    //         // if (no_of_valid_next_steps == 0)
+    //         // {
+    //         //     reverse_map_table[make_pair(i,j)].emplace_back(make_tuple(-1,-1,-1));
+    //         // }
+    //     }
+    // }
+
+    // cout << "Reverse map table: " << endl;
+    // print_map(reverse_map_table);
     
     auto time_end = chrono::high_resolution_clock::now();
 
