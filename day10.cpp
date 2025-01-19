@@ -31,13 +31,6 @@ typedef enum
     e_REVERSE
 } traversal_direction_t;
 
-typedef struct 
-{
-    bool valid_direction;
-    pair<int,int> index;
-} step_t;
-
-
 template<typename T>
 void print_vector(vector<T> const v)
 {
@@ -65,7 +58,7 @@ void print_vector(vector<vector<T>> const v)
     }
 }
 
-void print_map(map<pair<int,int>, vector<tuple<int,int,int>>> myMap)
+void print_map(map<pair<int,int>, vector<pair<int,int>>> myMap)
 {
     for(const auto& elem : myMap)
     {
@@ -73,15 +66,10 @@ void print_map(map<pair<int,int>, vector<tuple<int,int,int>>> myMap)
 
         for (const auto& p : elem.second)
         {
-            cout << "(" << get<0>(p) << "," << get<1>(p) << "," << get<2>(p) << ") ";
+            cout << "(" << p.first << "," << p.second << ") ";
         }
         cout << endl;
     }
-}
-
-int calculate_steps(pair<int,int> p1, pair<int,int> p2)
-{
-    return (abs(p2.first - p1.first) + abs(p2.second - p1.second));
 }
 
 bool is_gradual_slope(vector<vector<int>> const v_map, pair<int,int> current, pair<int,int> next, traversal_direction_t t_dir)
@@ -139,220 +127,115 @@ bool is_valid_next_step(vector<vector<int>> const v_map, size_t map_rows, size_t
     return is_valid;
 }
 
-int find_trailhead_scores(pair<int,int> trailhead, vector<pair<int,int>> endpoints, map<pair<int,int>, vector<tuple<int,int,int>>> og_map_table, map<pair<int,int>, vector<tuple<int,int,int>>> ic_map_table)
+int find_trailhead_scores(pair<int,int> trailhead, vector<pair<int,int>> endpoints, map<pair<int,int>, vector<pair<int,int>>> og_map_table, map<pair<int,int>, vector<pair<int,int>>> ic_map_table)
 {
-    int score = 0;
-    size_t total_endpoints = endpoints.size();
+    int scores = 0;
+    vector<pair<int,int>> valid_vertices;
+    vector<pair<int,int>> traverse_stack;
+    map<pair<int,int>, bool> visited_table;
 
-    for (int i = 0; i < total_endpoints; i++)
+    for(auto const& row : og_map_table)
     {
+        valid_vertices.push_back(row.first);
+    }
+
+    if (og_map_table.count(trailhead) != 0)
+    {
+        for (int i = 0; i < endpoints.size(); i++)
+        {
+            pair<int,int> end_index = endpoints[i];
+            if (ic_map_table.count(end_index) == 0)
+            {
+                endpoints.erase(endpoints.begin() + i);
+                i--;
+            }
+        }
+
         pair<int,int> current_index = trailhead;
-        pair<int,int> end_index = endpoints[i];
-        tuple<int,int,int> next_index_tuple = og_map_table[current_index][0];
-        bool is_end_goal = false;
-        vector<pair<int,int>> traverse_path;
-        vector<pair<int,int>> junction_indices;
+        traverse_stack.push_back(current_index);
+        pair<int,int> next_index;
 
-        // If the index of trailhead is not found in the table, then it doesn't have any way ahead, abort!!
-        if (og_map_table.count(trailhead) == 0)
+        while (traverse_stack.size() != 0)
         {
-            break;
-        }
+            current_index = traverse_stack.back();
+            visited_table[current_index] = true;
+            traverse_stack.pop_back();
 
-        // If the end index is not found in the table, then skip and go to next end index
-        if (ic_map_table.count(end_index) == 0)
-        {
-            cout << "End index: " << end_index.first << "," << end_index.second << " not reachable for trailhead " << trailhead.first << "," << trailhead.second << endl;
-            continue;
-        }
-
-        traverse_path.push_back(current_index);
-        while ((current_index.first != end_index.first) || (current_index.second != end_index.second))
-        {
-            is_end_goal = false;
-            // If the current index has more than one next indices to choose
-            if (og_map_table[current_index].size() > 1)
+            if (count(valid_vertices.begin(), valid_vertices.end(), current_index) == 0)
             {
-                pair<int,int> next_index;
-                // Pick the non-traversed next index
-                for (int j = 0; j < og_map_table[current_index].size(); j++)
+                if (count(endpoints.begin(), endpoints.end(), current_index) > 0)
                 {
-                    next_index_tuple = og_map_table[current_index][j];
-                    next_index = make_pair(get<0>(next_index_tuple), get<1>(next_index_tuple));
-
-                    // If the next index is non visited, then include the current index as a junction index
-                    if(count(traverse_path.begin(), traverse_path.end(), next_index) == 0)
-                    {
-                        junction_indices.push_back(current_index);
-                        traverse_path.push_back(next_index);
-                        break;
-                    }
-                }
-
-                // If the current index is not part of junction indices, then it means that all the next indices are visited before,
-                // so go the next latest junction index and repeat the above steps.
-                // If junction indices is empty, then it means that all the junction indices are explored and therefore exit.
-                if(count(junction_indices.begin(), junction_indices.end(), current_index) == 0)
-                {
-                    if (junction_indices.size() != 0)
-                    {
-                        current_index = junction_indices.back();
-                        junction_indices.pop_back();
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-                // If current index is part of junction indices, then it means we have an unvisited next index
-                else
-                {
-                    // Go to the next index
-                    current_index = next_index;
+                    scores++;
                 }
             }
-            else
-            {
-                current_index = make_pair(get<0>(og_map_table[current_index][0]), get<1>(og_map_table[current_index][0]));
-            }
 
-            if (og_map_table.count(current_index) == 0)
+            size_t neighbours = og_map_table[current_index].size();
+            for (int i = 0; i < neighbours; i++)
             {
-                if ((current_index.first == end_index.first) && (current_index.second == end_index.second))
+                auto neighbour_index = og_map_table[current_index][i];
+
+                if (visited_table[neighbour_index] == false)
                 {
-                    // cout << "trailhead: (" << trailhead.first << "," << trailhead.second << ")" << endl;
-                    // cout << "endpoint: (" << endpoints[i].first << "," << endpoints[i].second << ")" << endl;
-                    is_end_goal = true;
-                    break;
-                }
-                else
-                {
-                    if(junction_indices.size() != 0)
-                    {
-                        current_index = junction_indices.back();
-                        junction_indices.pop_back();
-                    }
-                    else
-                    {
-                        break;
-                    }
+                    traverse_stack.push_back(neighbour_index);
                 }
             }
-        }
-        
-        if (is_end_goal)
-        {
-            score++;
         }
     }
 
-    // cout << "Trailhead score: " << score << endl;
-
-    return score; 
+    return scores;
 }
 
-int find_trailhead_ratings(pair<int,int> trailhead, vector<pair<int,int>> endpoints, map<pair<int,int>, vector<tuple<int,int,int>>> og_map_table, map<pair<int,int>, vector<tuple<int,int,int>>> ic_map_table)
+int find_trailhead_ratings(pair<int,int> trailhead, vector<pair<int,int>> endpoints, map<pair<int,int>, vector<pair<int,int>>> og_map_table, map<pair<int,int>, vector<pair<int,int>>> ic_map_table)
 {
     int ratings = 0;
-    size_t total_endpoints = endpoints.size();
+    vector<pair<int,int>> valid_vertices;
+    vector<pair<int,int>> traverse_stack;
 
-    for (int i = 0; i < total_endpoints; i++)
+    for(auto const& row : og_map_table)
     {
+        valid_vertices.push_back(row.first);
+    }
+
+    if (og_map_table.count(trailhead) != 0)
+    {
+        for (int i = 0; i < endpoints.size(); i++)
+        {
+            pair<int,int> end_index = endpoints[i];
+            if (ic_map_table.count(end_index) == 0)
+            {
+                endpoints.erase(endpoints.begin() + i);
+                i--;
+            }
+        }
+
         pair<int,int> current_index = trailhead;
-        pair<int,int> end_index = endpoints[i];
-        tuple<int,int,int> next_index_tuple = og_map_table[current_index][0];
-        bool is_end_goal = false;
-        map<pair<int,int>, vector<pair<int,int>>> traverse_graph;
-        vector<pair<int,int>> junction_indices;
+        traverse_stack.push_back(current_index);
+        pair<int,int> next_index;
 
-        // If the index of trailhead is not found in the table, then it doesn't have any way ahead, abort!!
-        if (og_map_table.count(trailhead) == 0)
+        while (traverse_stack.size() != 0)
         {
-            break;
-        }
+            current_index = traverse_stack.back();
+            traverse_stack.pop_back();
 
-        // If the end index is not found in the table, then skip and go to next end index
-        if (ic_map_table.count(end_index) == 0)
-        {
-            cout << "End index: " << end_index.first << "," << end_index.second << " not reachable for trailhead " << trailhead.first << "," << trailhead.second << endl;
-            continue;
-        }
-
-        while (1)
-        {
-            is_end_goal = false;
-            // If the current index has more than one next indices to choose
-            if (og_map_table[current_index].size() > 1)
+            if (count(valid_vertices.begin(), valid_vertices.end(), current_index) == 0)
             {
-                pair<int,int> next_index;
-                size_t neighbours = og_map_table[current_index].size();
-                // Pick the non-traversed next index
-                for (int j = 0; j < neighbours; j++)
+                if (count(endpoints.begin(), endpoints.end(), current_index) > 0)
                 {
-                    next_index_tuple = og_map_table[current_index][j];
-                    next_index = make_pair(get<0>(next_index_tuple), get<1>(next_index_tuple));
-
-                    // If the next index is non visited from the current index, then include the current index as a junction index
-                    if(count(traverse_graph[current_index].begin(), traverse_graph[current_index].end(), next_index) == 0)
-                    {
-                        junction_indices.push_back(current_index);
-                        traverse_graph[current_index].push_back(next_index);
-                        break;
-                    }
-                }
-
-                // If the current index is not part of junction indices, then it means that all the next indices are visited before,
-                // so go the next latest junction index and repeat the above steps.
-                // If junction indices is empty, then it means that all the junction indices are explored and therefore exit.
-                if(count(junction_indices.begin(), junction_indices.end(), current_index) == 0)
-                {
-                    if (junction_indices.size() != 0)
-                    {
-                        current_index = junction_indices.back();
-                        junction_indices.pop_back();
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-                // If current index is part of junction indices, then it means we have an unvisited next index
-                else
-                {
-                    // Go to the next index
-                    current_index = next_index;
-                }
-            }
-            else
-            {
-                current_index = make_pair(get<0>(og_map_table[current_index][0]), get<1>(og_map_table[current_index][0]));
-            }
-
-            if (og_map_table.count(current_index) == 0)
-            {
-                if ((current_index.first == end_index.first) && (current_index.second == end_index.second))
-                {
-                    // cout << "trailhead: (" << trailhead.first << "," << trailhead.second << ")" << endl;
-                    // cout << "endpoint: (" << endpoints[i].first << "," << endpoints[i].second << ")" << endl;
                     ratings++;
                 }
+            }
 
-                if(junction_indices.size() != 0)
-                {
-                    current_index = junction_indices.back();
-                    junction_indices.pop_back();
-                }
-                else
-                {
-                    break;
-                }
+            size_t neighbours = og_map_table[current_index].size();
+            for (int i = 0; i < neighbours; i++)
+            {
+                auto neighbour_index = og_map_table[current_index][i];
+
+                traverse_stack.push_back(neighbour_index);
             }
         }
     }
 
-    // cout << "Trailhead score: " << score << endl;
-
-    return ratings; 
+    return ratings;
 }
 
 int main()
@@ -361,8 +244,8 @@ int main()
 
     string file_path;
     // file_path = "./input_sample_d10.txt";
-    file_path = "./d10_dbg.txt";
-    // file_path = "./d10.txt";
+    // file_path = "./d10_dbg.txt";
+    file_path = "./d10.txt";
 
     fileOperations<int> fOp(file_path);
 
@@ -395,7 +278,7 @@ int main()
         }
     }
 
-    map<pair<int,int>, vector<tuple<int,int,int>>> outgoing_map_table, incoming_map_table;
+    map<pair<int,int>, vector<pair<int,int>>> outgoing_map_table, incoming_map_table;
     for (int i = 0; i < num_rows; i++)
     {
         for (int j = 0; j < num_cols; j++)
@@ -406,11 +289,11 @@ int main()
                 pair<int,int> next;
                 if (is_valid_next_step(topographical_map, num_rows, num_cols, make_pair(i,j), next, (directions_t) k, e_FORWARD))
                 {
-                    outgoing_map_table[make_pair(i,j)].emplace_back(make_tuple(next.first, next.second, k));
+                    outgoing_map_table[make_pair(i,j)].push_back(next);
                 }
                 if (is_valid_next_step(topographical_map, num_rows, num_cols, make_pair(i,j), next, (directions_t) k, e_REVERSE))
                 {
-                    incoming_map_table[make_pair(i,j)].emplace_back(make_tuple(next.first, next.second, k));
+                    incoming_map_table[make_pair(i,j)].push_back(next);
                 }
             }
         }
