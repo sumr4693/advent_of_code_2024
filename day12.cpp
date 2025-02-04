@@ -40,6 +40,20 @@ void print_vector(vector<vector<T>> const v)
     }
 }
 
+void print_map(map<char, vector<pair<int,int>>> myMap)
+{
+    for(const auto& elem : myMap)
+    {
+        cout << elem.first << ": ";
+
+        for (const auto& p : elem.second)
+        {
+            cout << "(" << p.first << "," << p.second << ") ";
+        }
+        cout << endl;
+    }
+}
+
 typedef enum
 {
     e_LEFT = 0,
@@ -55,7 +69,7 @@ typedef struct
     int16_t col;
 } cell_t;
 
-void find_different_gardens(const vector<vector<char>>& garden_plots, vector<char>& garden_types)
+void find_garden_types(const vector<vector<char>>& garden_plots, map<char, vector<pair<int,int>>>& garden_types)
 {
     size_t dimension = garden_plots.size();
 
@@ -63,26 +77,16 @@ void find_different_gardens(const vector<vector<char>>& garden_plots, vector<cha
     {
         for (int j = 0; j < dimension; j++)
         {
-            if (find(garden_types.begin(), garden_types.end(), garden_plots[i][j]) == garden_types.end())
-            {
-                garden_types.push_back(garden_plots[i][j]);
-            }
+            garden_types[garden_plots[i][j]].push_back(make_pair(i,j));
         }
     }
-
-    print_vector<char>(garden_types);
+    print_map(garden_types);
 }
 
-void calculate_area(const vector<vector<char>>& garden_plots, const vector<char>& garden_types, vector<int>& garden_areas, map<char, pair<int,int>>& garden_type_indices)
+void calculate_garden_perimeters(const vector<vector<char>>& garden_plots, vector<vector<int>>& garden_perimeters)
 {
-
-}
-
-void calculate_perimeter(const vector<vector<char>>& garden_plots, vector<vector<int>>& perimeter_table)
-{
-    // long long fencing_price = 0;
     size_t dimension = garden_plots.size();
-    cout << "Dimension: " << dimension << endl;
+    // cout << "Dimension: " << dimension << endl;
 
     int dir_arr[e_NUM_DIR][2] = {{0, -1},
                                  {0, 1},
@@ -102,11 +106,11 @@ void calculate_perimeter(const vector<vector<char>>& garden_plots, vector<vector
 
                 if (c.row == -1 || c.row == dimension || c.col == -1 || c.col == dimension)
                 {
-                    perimeter_table[i][j]++;
+                    garden_perimeters[i][j]++;
                 }
                 else if (garden_plots[c.row][c.col] != garden_plots[i][j])
                 {
-                    perimeter_table[i][j]++;
+                    garden_perimeters[i][j]++;
                 }
                 else
                 {
@@ -115,19 +119,38 @@ void calculate_perimeter(const vector<vector<char>>& garden_plots, vector<vector
 
                 dir = (directions_t) ((dir + 1) % e_NUM_DIR);
             }
-            // fencing_price += perimeter_table[i][j];
         }
     }
-
-    print_vector<int>(perimeter_table);
-
-    // return fencing_price;
 }
 
-long long calculate_fencing_price(const vector<char>& garden_types, const vector<int>& garden_areas,
-                                  const map<char, pair<int,int>>& garden_type_indices, const vector<vector<int>>& perimeter_table)
+long long calculate_fencing_price(const vector<vector<char>>& garden_plots, map<char, vector<pair<int,int>>> garden_types, const vector<vector<int>>& garden_perimeters)
 {
     long long fencing_price = 0;
+    size_t total_garden_types = garden_types.size();
+
+    cout << "Type, Area, Perimeter: " << endl;
+
+    for (const auto& row : garden_types)
+    {
+        int area = 0;
+        int perimeter = 0;
+        size_t num_indices = row.second.size();
+
+        for (int i = 0; i < num_indices; i++)
+        {
+            if (i == 0)
+            {
+                area++;
+                perimeter += garden_perimeters[row.second[i].first][row.second[i].second];
+                continue;
+            }
+            else
+            {
+
+            }
+        }
+        fencing_price += (area * perimeter);
+    }
 
     return fencing_price;
 }
@@ -144,18 +167,21 @@ int main()
     fileOperations<char> fOp(file_path);
 
     vector<vector<char>> garden_plots;
-    vector<char> garden_types;
+    map<char, vector<pair<int,int>>> garden_types;
+    map<char, int> garden_areas;
     long long fencing_price = 0;
 
     fOp.get_char_data_from_file(garden_plots);
     // print_vector<char>(garden_plots);
-    find_different_gardens(garden_plots, garden_types);
+    find_garden_types(garden_plots, garden_types);
 
     size_t dimension = garden_plots.size();
-    vector<vector<int>> perimeter_table(dimension, vector<int>(dimension, 0));
-    calculate_perimeter(garden_plots, perimeter_table);
+    vector<vector<int>> garden_perimeters(dimension, vector<int>(dimension, 0));
+    calculate_garden_perimeters(garden_plots, garden_perimeters);
 
-    cout << "Fencing price, part 1: " << fencing_price << endl;
+    // fencing_price = calculate_fencing_price(garden_plots, garden_types, garden_perimeters);
+
+    // cout << "Fencing price, part 1: " << fencing_price << endl;
 
     auto time_end = chrono::high_resolution_clock::now();
 
