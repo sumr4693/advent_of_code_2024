@@ -244,6 +244,203 @@ long long calculate_fencing_price(const vector<vector<pair<int,int>>>& garden_re
     return fencing_price;
 }
 
+long long calculate_sides(const vector<pair<int,int>>& pairs, size_t area)
+{
+    long long sides = 4;
+    vector<vector<pair<int,int>>> region_table;
+    vector<vector<pair<int,int>>> surface;
+
+    if (area > 2)
+    {
+        vector<pair<int,int>> row_pairs;
+        row_pairs.push_back(pairs[0]);
+        for (int i = 1; i < area; i++)
+        {
+            if (pairs[i].first != row_pairs.back().first)
+            {
+                region_table.push_back(row_pairs);
+                row_pairs.clear();
+                row_pairs.push_back(pairs[i]);
+            }
+            else
+            {
+                row_pairs.push_back(pairs[i]);
+            }
+        }
+        region_table.push_back(row_pairs);
+
+        size_t table_rows = region_table.size();
+
+        for (int i = 0; i < table_rows; i++)
+        {
+            size_t row_size = region_table[i].size();
+
+            if (row_size <= 2)
+            {
+                surface.push_back(region_table[i]);
+            }
+            else
+            {
+                vector<pair<int,int>> endpoints;
+                endpoints.push_back(region_table[i][0]);
+                endpoints.push_back(region_table[i][row_size - 1]);
+
+                surface.push_back(endpoints);
+            }
+        }
+
+        if ((surface.size() != 1) && (surface.size() != area))
+        {
+            typedef enum
+            {
+                e_TOP_DOWN = 1,
+                e_BOTTOM_UP = -1,
+                e_TRAVERSAL_TYPES
+            } traversal_type_t;
+
+            traversal_type_t traversal_type = e_TOP_DOWN;
+
+            // int i = 0, j = 0;
+            // pair<int,int> start_index = surface[i][j];
+            // pair<int,int> previous_index = start_index;
+            // pair<int,int> current_index = make_pair(-1,-1);
+            // bool dir_change = false;
+            // sides++;
+            // while ((current_index.first != start_index.first) || (current_index.second != start_index.second))
+            // {
+            //     if (i == surface.size() - 1)
+            //     {
+            //         traversal_type = e_BOTTOM_UP;
+            //         dir_change = true;
+            //     }
+
+            //     if ((i == 0) || (i == surface.size() - 1))
+            //     {
+            //         if (surface[i].size() == 1)
+            //         {
+            //             i += (int) traversal_type;
+            //         }
+            //         else
+            //         {
+            //             j += (int) traversal_type;
+            //         }
+            //     }
+            //     else
+            //     {
+            //         i += (int) traversal_type;
+
+            //         if (traversal_type == e_TOP_DOWN)
+            //         {
+            //             j = surface[i].size() - 1;
+            //         }
+            //         else if (traversal_type == e_BOTTOM_UP)
+            //         {
+            //             j = 0;
+            //         }
+            //         else
+            //         {
+            //             // Do nothing
+            //         }
+            //     }
+
+            //     current_index = surface[i][j];
+
+            //     if ((current_index.first != previous_index.first) && (current_index.second != previous_index.second))
+            //     {
+            //         sides += 2;
+            //     }
+            //     else
+            //     {
+            //         if (current_index.first != previous_index.first)
+            //         {
+            //             sides += 1;
+            //         }
+            //         else
+            //         {
+
+            //         }
+            //     }
+
+            //     previous_index = current_index;
+
+            // }
+        
+            int i = 0, j = 0;
+            pair<int,int> start_index = surface[i][0];
+            pair<int,int> previous_index = surface[i][surface[i].size() - 1];
+            pair<int,int> current_index = make_pair(-1,-1);
+
+            while ((current_index.first != start_index.first) || (current_index.second != start_index.second))
+            {
+                if (i == surface.size() - 1)
+                {
+                    traversal_type = e_BOTTOM_UP;
+                    previous_index = surface[i][0];
+                }
+
+                i += (int) traversal_type;
+
+                if (traversal_type == e_TOP_DOWN)
+                {
+                    j = surface[i].size() - 1;
+                }
+                else if (traversal_type == e_BOTTOM_UP)
+                {
+                    j = 0;
+                }
+                else
+                {
+                    // Do nothing
+                }
+
+                current_index = surface[i][j];
+
+                if ((current_index.first != previous_index.first) && (current_index.second != previous_index.second))
+                {
+                    sides += 2;
+                }
+                else
+                {
+                    if ((abs(current_index.first - previous_index.first) > 1) || (abs(current_index.second - previous_index.second) > 1))
+                    {
+                        sides += 2;
+                    }
+                }
+
+                previous_index = current_index;
+            }
+
+        }
+    }
+    // print_vector<int>(region_table);
+    // print_vector<int>(corners);
+    cout << sides << endl;
+
+    return sides;
+}
+
+long long calculate_discounted_fencing_price(const vector<vector<pair<int,int>>>& garden_regions)
+{
+    long long discounted_fencing_price = 0;
+    vector<vector<pair<int,int>>> garden_regions_sorted = garden_regions;
+    size_t total_regions = garden_regions_sorted.size();
+    vector<vector<long>> sides;
+
+    for (int i = 0; i < total_regions; i++)
+    {
+        sort(garden_regions_sorted[i].begin(), garden_regions_sorted[i].end());
+    }
+
+    // print_vector<int>(garden_regions_sorted);
+    for (int i = 0; i < total_regions; i++)
+    {
+        size_t area = garden_regions_sorted[i].size();
+        discounted_fencing_price += (calculate_sides(garden_regions_sorted[i], area) * area);
+    }
+
+    return discounted_fencing_price;
+}
+
 int main()
 {
     auto time_start = chrono::high_resolution_clock::now();
@@ -259,10 +456,10 @@ int main()
     map<char, vector<pair<int,int>>> garden_types;
     map<char, int> garden_areas;
     vector<vector<pair<int,int>>> garden_regions;
-    long long fencing_price = 0;
+    long long initial_fencing_price = 0;
+    long long discounted_fencing_price = 0;
 
     fOp.get_char_data_from_file(garden_plots);
-    // print_vector<char>(garden_plots);
     find_garden_types(garden_plots, garden_types);
 
     size_t dimension = garden_plots.size();
@@ -270,9 +467,11 @@ int main()
     calculate_garden_perimeters(garden_plots, garden_perimeters);
 
     find_garden_regions(garden_plots, garden_types, garden_regions);
-    fencing_price = calculate_fencing_price(garden_regions, garden_perimeters);
+    initial_fencing_price = calculate_fencing_price(garden_regions, garden_perimeters);
 
-    cout << "Fencing price, part 1: " << fencing_price << endl;
+    cout << "Fencing price, part 1: " << initial_fencing_price << endl;
+
+    discounted_fencing_price = calculate_discounted_fencing_price(garden_regions);
 
     auto time_end = chrono::high_resolution_clock::now();
 
